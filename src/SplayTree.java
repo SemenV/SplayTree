@@ -5,20 +5,18 @@ import java.util.*;
 
 public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
 
-    public Node root = null;
+    private Node root = null;
 
-    public int count = 0;
+    private int size = 0;
 
-    private class Node<E> {
-        private final E value;
-        private Node<E> parent = null, left = null, right = null;
+    public class Node<T> {
+        private final T value;
+        private Node<T> parent = null, left = null, right = null;
 
-        Node(E value) {
+        Node(T value) {
             this.value = value;
         }
-
     }
-
 
     @Override
     public boolean add(T value) {
@@ -44,12 +42,12 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
             parentForCurrNode.left = newNode;
         else parentForCurrNode.right = newNode;
 
-        splayy(newNode);
-        count++;
+        splay(newNode);
+        size++;
         return true;
     }
 
-    private void splayy(Node<T> node) {
+    private void splay(Node<T> node) {
         while (node.parent != null) {
             if (node.parent == null) return;
 
@@ -115,21 +113,158 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         changeParent(gparent, node);
     }
 
-
-    private Node<T> search(T value) {
+    private Node<T> search(T node) {
+        Node<T> currentNode = root;
+        while (currentNode != null) {
+            if (node.compareTo(currentNode.value) == 0) {
+                splay(currentNode);
+                return currentNode;
+            } else if (node.compareTo(currentNode.value) < 0) {
+                currentNode = currentNode.left;
+            } else {
+                currentNode = currentNode.right;
+            }
+        }
         return null;
     }
 
     @Override
-    public boolean containsAll(Collection<?> collection) {
+    public boolean containsAll(Collection<?> e) {
+        for (Object element : e) {
+            if (!contains(element)) return false;
+        }
         return true;
     }
 
     @Override
     public boolean contains(Object e) {
+        T element = (T) e;
+        Node<T> elemTree = search(element);
+        return element != null && elemTree.value.compareTo(element) == 0;
+    }
+
+    @Override
+    public T last() {
+        if (isEmpty()) throw new NoSuchElementException("NoSuchElementException");
+        Node<T> currentNode = root;
+        while (currentNode.right != null) {
+            currentNode = currentNode.right;
+        }
+        splay(currentNode);
+        return currentNode.value;
+    }
+
+    @Override
+    public T first() {
+        if (isEmpty()) throw new NoSuchElementException("NoSuchElementException");
+        Node<T> current = root;
+        while (current.left != null) {
+            current = current.left;
+        }
+        splay(current);
+        return current.value;
+    }
+
+    @Override
+    public void clear() {
+        root = null;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return root == null;
+    }
+
+    @Override
+    public int size() {
+        return size;
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends T> c) {
+        for (T element : c) {
+            if (!add(element)) return false;
+        }
+        return true;
+    }
+
+    public boolean addAllElements(T... c) {
+        addAll(Arrays.asList(c));
+        return true;
+    }
+
+    public Node<T> merge(Node<T> tree1, Node<T> tree2) {
+        if (tree1 == null) return tree2;
+        if (tree2 == null) return tree1;
+
+        tree1 = search((maxNode(tree1)).value);
+        tree1.right = tree2;
+        return tree1;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        if (o == null || root == null) return false;
+        Node<T> element = search((T) o);
+        root = merge(element.left, element.right);
+        size--;
+        return true;
+    }
+
+    private Node<T> maxNode(Node<T> node) {
+        if (node.right != null) {
+            return maxNode(node.right);
+        } else return node;
+    }
+
+    @NotNull
+    @Override
+    public Iterator<T> iterator() {
+        return new SplayTreeIterator();
+    }
+
+    public class SplayTreeIterator implements Iterator<T> {
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public T next() {
+            return null;
+        }
+    }
+
+
+
+
+    @NotNull
+    @Override
+    public Object[] toArray() {
+        return new Object[0];
+    }
+
+    @NotNull
+    @Override
+    public <T1> T1[] toArray(@NotNull T1[] a) {
+        return null;
+    }
+
+    @Override
+    public boolean retainAll(@NotNull Collection<?> c) {
         return false;
     }
 
+    @Override
+    public boolean removeAll(@NotNull Collection<?> c) {
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public Comparator<? super T> comparator() {
+        return null;
+    }
 
     @NotNull
     @Override
@@ -148,76 +283,5 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
     public SortedSet<T> tailSet(T fromElement) {
         return null;
     }
-
-    @Override
-    public T first() {
-        return null;
-    }
-
-    @Override
-    public T last() {
-        return null;
-    }
-
-    @Override
-    public int size() {
-        return 0;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return false;
-    }
-
-    @NotNull
-    @Override
-    public Iterator<T> iterator() {
-        return null;
-    }
-
-    @NotNull
-    @Override
-    public Object[] toArray() {
-        return new Object[0];
-    }
-
-    @NotNull
-    @Override
-    public <T1> T1[] toArray(@NotNull T1[] a) {
-        return null;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        return false;
-    }
-
-
-    @Override
-    public boolean addAll(@NotNull Collection<? extends T> c) {
-        return false;
-    }
-
-    @Override
-    public boolean retainAll(@NotNull Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean removeAll(@NotNull Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public void clear() {
-
-    }
-
-    @Nullable
-    @Override
-    public Comparator<? super T> comparator() {
-        return null;
-    }
-
 
 }
