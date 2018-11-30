@@ -9,13 +9,26 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
 
     private int size = 0;
 
-    public class Node<T> {
-        private final T value;
-        private Node<T> parent = null, left = null, right = null;
+    protected class Node<T> {
+        final T value;
+        Node<T> parent = null, left = null, right = null;
 
         Node(T value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder("Value: " + value);
+            if (left != null) str.append(" Left: ").append(left.value);
+            if (right != null) str.append(" Right: ").append(right.value);
+            if (parent != null) str.append(" Parent: ").append(parent.value);
+            return str.toString();
+        }
+    }
+
+    public Node getRoot() {
+        return root;
     }
 
     @Override
@@ -70,47 +83,49 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         }
     }
 
-    private void changeParent(Node<T> parent, Node<T> node) {
-        Node<T> right = node.right;
-        Node<T> left = node.left;
-        Node<T> parentParent = parent.parent;
+    private void nodeUp(Node<T> node) {
+        Node<T> parent = node.parent;
+        Node<T> gparent = parent.parent;
+        Node<T> nodeRight = node.right;
+        Node<T> nodeLeft = node.left;
+        boolean rigth = false;
+        if (gparent != null) rigth = gparent.right == parent;
 
         if (parent.left == node) {
             node.right = parent;
-            parent.left = right;
-            if (right != null)
-                right.parent = parent;
+            parent.left = nodeRight;
+            if (nodeRight != null)
+                nodeRight.parent = parent;
         } else {
             node.left = parent;
-            parent.right = left;
-            if (left != null)
-                left.parent = parent;
+            parent.right = nodeLeft;
+            if (nodeLeft != null)
+                nodeLeft.parent = parent;
         }
-        node.parent = parentParent;
+        node.parent = gparent;
         parent.parent = node;
 
-        if (node.parent == null) root = node;
+        if (gparent == null) root = node;
         else {
-            if (parentParent.left != null && parentParent.left == parent)
-                parentParent.left = node;
-            if (parentParent.right != null && parentParent.right == parent)
-                parentParent.right = node;
+            if (rigth)
+                gparent.right = node;
+            else
+                gparent.left = node;
         }
     }
 
     private void zig(Node<T> parent, Node<T> node) {
-        changeParent(parent, node);
-        root = node;
+        nodeUp(node);
     }
 
     private void zigZig(Node<T> gparent, Node<T> parent, Node<T> node) {
-        changeParent(gparent, parent);
-        changeParent(parent, node);
+        nodeUp(parent);
+        nodeUp(node);
     }
 
     private void zigZag(Node<T> gparent, Node<T> parent, Node<T> node) {
-        changeParent(parent, node);
-        changeParent(gparent, node);
+        nodeUp(node);
+        nodeUp(node);
     }
 
     private Node<T> search(T node) {
@@ -136,11 +151,12 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean contains(Object e) {
         T element = (T) e;
         Node<T> elemTree = search(element);
-        return element != null && elemTree.value.compareTo(element) == 0;
+        return element != null && elemTree != null && elemTree.value.compareTo(element) == 0;
     }
 
     @Override
@@ -168,6 +184,7 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
     @Override
     public void clear() {
         root = null;
+        size = 0;
     }
 
     @Override
@@ -188,33 +205,38 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         return true;
     }
 
-    public boolean addAllElements(T... c) {
+    @SafeVarargs
+    public final void addAllElements(T... c) {
         addAll(Arrays.asList(c));
-        return true;
     }
 
-    public Node<T> merge(Node<T> tree1, Node<T> tree2) {
+    private Node<T> merge(Node<T> tree1, Node<T> tree2) {
         if (tree1 == null) return tree2;
         if (tree2 == null) return tree1;
-
         tree1 = search((maxNode(tree1)).value);
+        if (tree1.value.compareTo(tree2.value) > 0) throw new IllegalArgumentException();
         tree1.right = tree2;
+        tree2.parent = tree1;
         return tree1;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean remove(Object o) {
         if (o == null || root == null) return false;
         Node<T> element = search((T) o);
+        element.left.parent = null;
+        element.right.parent = null;
         root = merge(element.left, element.right);
         size--;
         return true;
     }
 
     private Node<T> maxNode(Node<T> node) {
-        if (node.right != null) {
-            return maxNode(node.right);
-        } else return node;
+        while (node.right != null) {
+            node = node.right;
+        }
+        return node;
     }
 
     @NotNull
@@ -223,7 +245,9 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         return new SplayTreeIterator();
     }
 
+    @SuppressWarnings("unchecked")
     public class SplayTreeIterator implements Iterator<T> {
+
         @Override
         public boolean hasNext() {
             return false;
@@ -236,28 +260,49 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
     }
 
 
-
-
     @NotNull
     @Override
     public Object[] toArray() {
-        return new Object[0];
+        Object[] array = new Object[size];
+        Iterator<T> iterator = this.iterator();
+        for (int k = 0; k < size - 1; k++) {
+            array[k] = iterator.next();
+        }
+        return array;
     }
 
+    @SuppressWarnings("unchecked")
     @NotNull
     @Override
     public <T1> T1[] toArray(@NotNull T1[] a) {
-        return null;
+        Object[] array = new Object[size];
+        Iterator<T> iterator = this.iterator();
+        for (int k = 0; k < a.length - 1; k++) {
+            if (iterator.hasNext())
+                array[k] = iterator.next();
+        }
+        return (T1[]) Arrays.copyOf(array, array.length, a.getClass());
     }
 
     @Override
     public boolean retainAll(@NotNull Collection<?> c) {
-        return false;
+        SortedSet<T> set = this;
+        Set<T> retained = new HashSet<>();
+        for (Object o : c) {
+            if (contains(o)) retained.add((T) o);
+        }
+        clear();
+        addAll(retained);
+        return !equals(set);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean removeAll(@NotNull Collection<?> c) {
-        return false;
+        for (Object e : c) {
+            if (!remove((T) e)) return false;
+        }
+        return true;
     }
 
     @Nullable
@@ -266,22 +311,74 @@ public class SplayTree<T extends Comparable<T>> implements SortedSet<T> {
         return null;
     }
 
+
     @NotNull
     @Override
     public SortedSet<T> subSet(T fromElement, T toElement) {
-        return null;
+        return new SplaySubTree<>(this, fromElement, toElement, true);
     }
 
     @NotNull
     @Override
     public SortedSet<T> headSet(T toElement) {
-        return null;
+        return new SplaySubTree<>(this, null, toElement, false);
     }
 
     @NotNull
     @Override
     public SortedSet<T> tailSet(T fromElement) {
-        return null;
+        return new SplaySubTree<>(this, fromElement, null, true);
+    }
+}
+
+
+class SplaySubTree<V extends Comparable<V>> extends SplayTree<V> {
+    private SplayTree<V> tree;
+    private V fromElement, toElement;
+    private boolean containsEdge;
+
+    SplaySubTree(SplayTree<V> tree, V fromElement, V toElement, boolean containsEdge) {
+        this.tree = tree;
+        this.fromElement = fromElement;
+        this.toElement = toElement;
+        this.containsEdge = containsEdge;
     }
 
+    private boolean isInside(V v) {
+        return (fromElement == null || v.compareTo(fromElement) > 0 || containsEdge && v.compareTo(fromElement) == 0) &&
+                (toElement == null || v.compareTo(toElement) < 0 || containsEdge && v.compareTo(toElement) == 0);
+    }
+
+    @Override
+    public boolean add(V v) {
+        if (isInside(v)) {
+            return tree.add(v);
+        }
+        throw new IllegalArgumentException("IllegalArgumentException");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean contains(Object o) {
+        return isInside((V) o) && tree.contains(o);
+    }
+
+    private int countSize(Node<V> root) {
+        int size = 0;
+        if (root != null) {
+            if (isInside(root.value)) {
+                ++size;
+            }
+            size += countSize(root.right);
+            size += countSize(root.left);
+        }
+        return size;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public int size() {
+        return countSize(tree.getRoot());
+    }
 }
+
