@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-public class TreeTest {
-    public SplayTree<Integer> splayTree = new SplayTree<>();
+public class SplayTreeSortedSetTest {
+    public SplayTreeSortedSet<Integer> splayTree = new SplayTreeSortedSet<>();
 
     @Test
     public void addTest() {
@@ -17,17 +17,6 @@ public class TreeTest {
         assertEquals(8, splayTree.size());
     }
 
-    @Test
-    public void rootTest() {
-        splayTree.clear();
-        splayTree.add(6);
-        splayTree.add(4);
-        assertEquals(4, splayTree.getRoot().value);
-        splayTree.add(0);
-        assertEquals(0, splayTree.getRoot().value);
-        splayTree.add(10);
-        assertEquals(10, splayTree.getRoot().value);
-    }
 
     @Test
     public void searchTest() {
@@ -70,8 +59,9 @@ public class TreeTest {
     @Test
     public void iteratorTest() {
         splayTree.clear();
-        List list = Arrays.asList(10, 9, 8, 12, 11, 4, 6, 7, 421, 0, 25, 48, 59, 74, 25, 86);
+        List list = new ArrayList(Arrays.asList(10, 9, 8, 12, 11, 4, 6, 7, 421, 0, 48, 59, 74, 86, 25, 25));
         splayTree.addAll(list);
+        list.remove(new Integer(25));
         list.sort(Comparator.comparingInt(x -> (int) x));
         Iterator listIter = list.iterator();
         Iterator spIter = splayTree.iterator();
@@ -99,14 +89,77 @@ public class TreeTest {
         List<Integer> elements = Arrays.asList(10,8,2);
         splayTree.retainAll(elements);
         assertTrue(splayTree.containsAll(Arrays.asList(10,8)));
+
         assertFalse(splayTree.contains(9));
         assertFalse(splayTree.contains(12));
         assertFalse(splayTree.contains(11));
     }
 
+    @Test
+    public void iteratorRemoveTest() {
+        splayTree.clear();
+        List list = new ArrayList(Arrays.asList(10, 9, 8, 12, 11, 4, 6, 7, 421, 0, 48, 59, 74, 86, 25, 25));
+        splayTree.addAll(list);
+        Iterator spIter = splayTree.iterator();
+        while (spIter.hasNext()) {
+            Integer k = (Integer) spIter.next();
+            if (k.compareTo(48) < 0) splayTree.remove(new Integer(k));
+        }
+    }
 
+    @Test
+    protected void doSubSetTest() {
+        splayTree.clear();
+        for (int i = 50; i >= 30; i--) {
+            splayTree.add(i);
+        }
+        for (int i = 10; i <= 30; i++) {
+            splayTree.add(i);
+        }
+        for (int i = 10; i >=0 ; i--) {
+            splayTree.add(i);
+        }
+        SortedSet<Integer> set = splayTree.subSet(15,50);
+        assertTrue(set.contains(17));
+        assertTrue(set.contains(40));
+        assertFalse(set.contains(0));
+        assertEquals(splayTree.size(),51);
+        assertEquals(set.size(),36);
+    }
 
+    @Test
+    protected void doTailSetTest() {
+        splayTree.clear();
+        for (int i = 30; i <= 200; i++) {
+            splayTree.add(i);
+        }
+        SortedSet set = splayTree.tailSet(200);
+        splayTree.add(290);
+        splayTree.add(280);
+        assertTrue(set.contains(280));
+        assertFalse(set.contains(30));
+        assertEquals(3,set.size());
+    }
+
+    @Test
+    protected void doHeadSetTest() {
+        splayTree.clear();
+        for (int i = 200; i >= 30; i--) {
+            splayTree.add(i);
+        }
+        SortedSet set = splayTree.headSet(30);
+        splayTree.add(29);
+        splayTree.add(28);
+        assertTrue(set.contains(28));
+        assertFalse(set.contains(150));
+        assertEquals(2,set.size());
+    }
 
 
 
 }
+
+
+
+
+
